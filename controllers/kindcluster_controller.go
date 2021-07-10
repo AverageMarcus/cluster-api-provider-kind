@@ -20,11 +20,17 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrastructurev1alpha4 "github.com/AverageMarcus/cluster-api-provider-kind/api/v1alpha4"
+	"github.com/pkg/errors"
 )
 
 // KindClusterReconciler reconciles a KindCluster object
@@ -33,23 +39,101 @@ type KindClusterReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+const finalizerName = "kindcluster.cluster.x-k8s.io/finalizer"
+
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kindclusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kindclusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=kindclusters/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the KindCluster object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	log := log.FromContext(ctx).WithValues("kindcluster", req.NamespacedName)
 
-	// your logic here
+	// Fetch the KindCluster instance
+	kindCluster := &infrastructurev1alpha4.KindCluster{}
+	if err := r.Get(ctx, req.NamespacedName, kindCluster); client.IgnoreNotFound(err) != nil {
+		log.Error(err, "unable to fetch KindCluster")
+		return ctrl.Result{}, err
+	}
+
+	// Fetch the owner Cluster
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, kindCluster.ObjectMeta)
+	if err != nil {
+		log.Error(err, "failed to get owner cluster")
+		return ctrl.Result{}, err
+	}
+
+	if cluster == nil {
+		log.Info("Cluster Controller has not yet set OwnerRef")
+		return ctrl.Result{}, nil
+	}
+
+	if annotations.IsPaused(cluster, kindCluster) {
+		log.Info("KindCluster or linked Cluster is marked as paused. Won't reconcile")
+		return ctrl.Result{}, nil
+	}
+
+	log = log.WithValues("cluster", kindCluster.Name)
+	helper, err := patch.NewHelper(kindCluster, r.Client)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrap(err, "failed to init patch helper")
+	}
+
+	if !kindCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The KindCluster is being deleted
+		if controllerutil.ContainsFinalizer(kindCluster, finalizerName) {
+			log.Info("deleting cluster")
+
+			kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseDeleting
+			if err := helper.Patch(ctx, kindCluster); err != nil {
+				log.Error(err, "failed to update KindCluster status")
+				return ctrl.Result{}, err
+			}
+
+			// TODO: Delete cluster
+
+			controllerutil.RemoveFinalizer(kindCluster, finalizerName)
+			if err := helper.Patch(ctx, kindCluster); err != nil {
+				return ctrl.Result{}, err
+			}
+			log.Info("removed finalizer")
+
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Ensure our finalizer is present
+	controllerutil.AddFinalizer(kindCluster, finalizerName)
+	if err := helper.Patch(ctx, kindCluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if kindCluster.Status.Phase == "" {
+		kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseCreating
+		if err := helper.Patch(ctx, kindCluster); err != nil {
+			log.Error(err, "failed to update KindCluster status")
+			return ctrl.Result{}, err
+		}
+
+		// TODO: Create cluster
+
+		kindCluster.Status.Ready = true
+		kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseReady
+		if err := helper.Patch(ctx, kindCluster); err != nil {
+			log.Error(err, "failed to update KindCluster status")
+			return ctrl.Result{}, err
+		}
+	}
+
+	// TODO: Get cluster status
+
+	// TODO: Get kubeconfig
 
 	return ctrl.Result{}, nil
 }
