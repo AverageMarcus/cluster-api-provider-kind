@@ -20,22 +20,55 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+type KindClusterPhase string
+
+const (
+	KindClusterPhaseCreating = "Creating"
+	KindClusterPhaseReady    = "Ready"
+	KindClusterPhaseDeleting = "Deleting"
+)
 
 // KindClusterSpec defines the desired state of KindCluster
 type KindClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Image is the node image used for the cluster nodes
+	//
+	// +kubebuilder:validation:Defaul=kindest/node
+	Image string `json:"image,omitempty"`
 
-	// Foo is an example field of KindCluster. Edit kindcluster_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Version is the Kubernetes version to use (e.g. v1.21.2)
+	//
+	// +kubebuilder:validation:Default=v1.21.2
+	// +kubebuilder:validation:Pattern=^v\d\.\d+\.\d+$
+	Version string `json:"version,omitempty"`
+
+	// Replicas controls the number of control plane nodes to create
+	//
+	// +kubebuilder:validation:Default=1
+	Replicas int32 `json:"replicas,omitempty"`
+
+	// FeatureGates enables or disabled Kubernetes feature gates
+	//
+	// See https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/
+	// for the available features.
+	FeatureGates map[string]bool `json:"featureGates,omitempty"`
+
+	// RuntimeConfig allows enabling or disabling built-in APIs.
+	//
+	// See https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
+	// for the available values.
+	RuntimeConfig map[string]string `json:"runtimeConfig,omitempty"`
 }
 
 // KindClusterStatus defines the observed state of KindCluster
 type KindClusterStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Ready indicates if the cluster is ready to use or not
+	Ready bool `json:"ready"`
+
+	// Phase contains details on the current phase of the cluster (e.g. creating, ready, deleting)
+	Phase KindClusterPhase `json:"phase"`
+
+	// KubeConfig contains the KubeConfig to use to communicate with the cluster
+	KubeConfig *string `json:"kubeConfig,omitempty"`
 }
 
 //+kubebuilder:object:root=true

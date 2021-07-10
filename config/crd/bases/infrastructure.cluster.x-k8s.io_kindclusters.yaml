@@ -36,13 +36,50 @@ spec:
           spec:
             description: KindClusterSpec defines the desired state of KindCluster
             properties:
-              foo:
-                description: Foo is an example field of KindCluster. Edit kindcluster_types.go
-                  to remove/update
+              featureGates:
+                additionalProperties:
+                  type: boolean
+                description: "FeatureGates enables or disabled Kubernetes feature
+                  gates \n See https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/
+                  for the available features."
+                type: object
+              image:
+                description: Image is the node image used for the cluster nodes
+                type: string
+              replicas:
+                description: Replicas controls the number of control plane nodes to
+                  create
+                format: int32
+                type: integer
+              runtimeConfig:
+                additionalProperties:
+                  type: string
+                description: "RuntimeConfig allows enabling or disabling built-in
+                  APIs. \n See https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
+                  for the available values."
+                type: object
+              version:
+                description: Version is the Kubernetes version to use (e.g. v1.21.2)
+                pattern: ^v\d\.\d+\.\d+$
                 type: string
             type: object
           status:
             description: KindClusterStatus defines the observed state of KindCluster
+            properties:
+              kubeConfig:
+                description: KubeConfig contains the KubeConfig to use to communicate
+                  with the cluster
+                type: string
+              phase:
+                description: Phase contains details on the current phase of the cluster
+                  (e.g. creating, ready, deleting)
+                type: string
+              ready:
+                description: Ready indicates if the cluster is ready to use or not
+                type: boolean
+            required:
+            - phase
+            - ready
             type: object
         type: object
     served: true
