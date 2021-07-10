@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -30,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrastructurev1alpha4 "github.com/AverageMarcus/cluster-api-provider-kind/api/v1alpha4"
+	"github.com/AverageMarcus/cluster-api-provider-kind/pkg/kind"
 	"github.com/pkg/errors"
 )
 
@@ -56,9 +58,14 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Fetch the KindCluster instance
 	kindCluster := &infrastructurev1alpha4.KindCluster{}
-	if err := r.Get(ctx, req.NamespacedName, kindCluster); client.IgnoreNotFound(err) != nil {
-		log.Error(err, "unable to fetch KindCluster")
-		return ctrl.Result{}, err
+	if err := r.Get(ctx, req.NamespacedName, kindCluster); err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			log.Error(err, "unable to fetch KindCluster")
+			return ctrl.Result{}, err
+		} else {
+			// Cluster no longer exists so lets stop now
+			return ctrl.Result{}, nil
+		}
 	}
 
 	// Fetch the owner Cluster
@@ -84,23 +91,37 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return reconcile.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
 
+	k := kind.New(log)
+
+	defer func() {
+		helper.Patch(
+			context.TODO(),
+			kindCluster,
+			patch.WithOwnedConditions{
+				Conditions: []clusterv1.ConditionType{
+					clusterv1.ReadyCondition,
+				}},
+		)
+	}()
+
 	if !kindCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The KindCluster is being deleted
 		if controllerutil.ContainsFinalizer(kindCluster, finalizerName) {
 			log.Info("deleting cluster")
 
 			kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseDeleting
+			kindCluster.Status.Ready = false
 			if err := helper.Patch(ctx, kindCluster); err != nil {
 				log.Error(err, "failed to update KindCluster status")
 				return ctrl.Result{}, err
 			}
 
-			// TODO: Delete cluster
-
-			controllerutil.RemoveFinalizer(kindCluster, finalizerName)
-			if err := helper.Patch(ctx, kindCluster); err != nil {
+			if err := k.DeleteCluster(kindCluster.Name); err != nil {
+				log.Error(err, "failed to delete cluster")
 				return ctrl.Result{}, err
 			}
+
+			controllerutil.RemoveFinalizer(kindCluster, finalizerName)
 			log.Info("removed finalizer")
 
 			return ctrl.Result{}, nil
@@ -121,7 +142,10 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, err
 		}
 
-		// TODO: Create cluster
+		if err := k.CreateCluster(kindCluster); err != nil {
+			log.Error(err, "failed to create cluster in kind")
+			return ctrl.Result{}, err
+		}
 
 		kindCluster.Status.Ready = true
 		kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseReady
@@ -131,9 +155,32 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
-	// TODO: Get cluster status
+	isReady, err := k.IsReady(kindCluster.Name)
+	if err != nil {
+		log.Error(err, "failed to check status of cluster")
+		return ctrl.Result{}, err
+	}
+	kindCluster.Status.Ready = isReady
+	if isReady {
+		kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseReady
+	} else {
+		kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseCreating
+	}
+	if err := helper.Patch(ctx, kindCluster); err != nil {
+		log.Error(err, "failed to update KindCluster status")
+		return ctrl.Result{}, err
+	}
 
-	// TODO: Get kubeconfig
+	kubeConfig, err := k.GetKubeConfig(kindCluster.Name)
+	if err != nil {
+		log.Error(err, "failed to check status of cluster")
+		return ctrl.Result{}, err
+	}
+	kindCluster.Status.KubeConfig = &kubeConfig
+	if err := helper.Patch(ctx, kindCluster); err != nil {
+		log.Error(err, "failed to update KindCluster status")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }

@@ -75,6 +75,7 @@ spec:
                   (e.g. creating, ready, deleting)
                 type: string
               ready:
+                default: false
                 description: Ready indicates if the cluster is ready to use or not
                 type: boolean
             required:

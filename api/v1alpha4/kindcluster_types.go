@@ -62,6 +62,7 @@ type KindClusterSpec struct {
 // KindClusterStatus defines the observed state of KindCluster
 type KindClusterStatus struct {
 	// Ready indicates if the cluster is ready to use or not
+	// +kubebuilder:default=false
 	Ready bool `json:"ready"`
 
 	// Phase contains details on the current phase of the cluster (e.g. creating, ready, deleting)
