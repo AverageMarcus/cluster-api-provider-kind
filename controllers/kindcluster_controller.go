@@ -113,7 +113,7 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		if controllerutil.ContainsFinalizer(kindCluster, finalizerName) {
 			log.Info("deleting cluster")
 
-			kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseDeleting
+			kindCluster.Status.Phase = &infrastructurev1alpha4.KindClusterPhaseDeleting
 			kindCluster.Status.Ready = false
 			if err := helper.Patch(ctx, kindCluster); err != nil {
 				log.Error(err, "failed to update KindCluster status")
@@ -122,7 +122,7 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 			if err := k.DeleteCluster(kindCluster.NamespacedName()); err != nil {
 				log.Error(err, "failed to delete cluster")
-				kindCluster.Status.FailureReason = v1alpha4.FailureReasonDeleteFailed
+				kindCluster.Status.FailureReason = &v1alpha4.FailureReasonDeleteFailed
 				kindCluster.Status.FailureMessage = utils.StringPtr(err.Error())
 				return ctrl.Result{}, err
 			}
@@ -141,8 +141,8 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	if kindCluster.Status.Phase == "" {
-		kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseCreating
+	if kindCluster.Status.Phase == nil || *kindCluster.Status.Phase == infrastructurev1alpha4.KindClusterPhasePending {
+		kindCluster.Status.Phase = &infrastructurev1alpha4.KindClusterPhaseCreating
 		if err := helper.Patch(ctx, kindCluster); err != nil {
 			log.Error(err, "failed to update KindCluster status")
 			return ctrl.Result{}, err
@@ -150,13 +150,13 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		if err := k.CreateCluster(kindCluster); err != nil {
 			log.Error(err, "failed to create cluster in kind")
-			kindCluster.Status.FailureReason = v1alpha4.FailureReasonCreateFailed
+			kindCluster.Status.FailureReason = &v1alpha4.FailureReasonCreateFailed
 			kindCluster.Status.FailureMessage = utils.StringPtr(err.Error())
 			return ctrl.Result{}, err
 		}
 
 		kindCluster.Status.Ready = true
-		kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseReady
+		kindCluster.Status.Phase = &infrastructurev1alpha4.KindClusterPhaseReady
 		if err := helper.Patch(ctx, kindCluster); err != nil {
 			log.Error(err, "failed to update KindCluster status")
 			return ctrl.Result{}, err
@@ -167,22 +167,22 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	isReady, err := k.IsReady(kindCluster.NamespacedName())
 	if err != nil {
 		log.Error(err, "failed to check status of cluster")
-		kindCluster.Status.FailureReason = v1alpha4.FailureReasonClusterNotFound
+		kindCluster.Status.FailureReason = &v1alpha4.FailureReasonClusterNotFound
 		kindCluster.Status.FailureMessage = utils.StringPtr(err.Error())
 		return ctrl.Result{}, err
 	}
 	kindCluster.Status.Ready = isReady
 	if isReady {
-		kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseReady
+		kindCluster.Status.Phase = &infrastructurev1alpha4.KindClusterPhaseReady
 	} else {
-		kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseCreating
+		kindCluster.Status.Phase = &infrastructurev1alpha4.KindClusterPhaseCreating
 	}
 
 	// Ensure kubeconfig is up-to-date
 	kc, err := k.GetKubeConfig(kindCluster.NamespacedName())
 	if err != nil {
 		log.Error(err, "failed to check status of cluster")
-		kindCluster.Status.FailureReason = v1alpha4.FailureReasonKubeConfig
+		kindCluster.Status.FailureReason = &v1alpha4.FailureReasonKubeConfig
 		kindCluster.Status.FailureMessage = utils.StringPtr(err.Error())
 		return ctrl.Result{}, err
 	}
@@ -192,7 +192,7 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	endpoint, err := kubeconfig.ExtractEndpoint(kc, kindCluster.NamespacedName())
 	if err != nil {
 		log.Error(err, "failed to get control plane endpoint")
-		kindCluster.Status.FailureReason = v1alpha4.FailureReasonEndpoint
+		kindCluster.Status.FailureReason = &v1alpha4.FailureReasonEndpoint
 		kindCluster.Status.FailureMessage = utils.StringPtr(err.Error())
 		return ctrl.Result{}, err
 	}

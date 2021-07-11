@@ -102,9 +102,6 @@ spec:
                 description: Ready indicates if the cluster is ready to use or not
                 type: boolean
             required:
-            - failureMessage
-            - failureReason
-            - phase
             - ready
             type: object
         type: object

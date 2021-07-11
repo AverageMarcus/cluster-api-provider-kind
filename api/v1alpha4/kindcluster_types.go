@@ -26,29 +26,31 @@ import (
 // KindClusterPhase indicates the current phase of a clusters life
 type KindClusterPhase string
 
-const (
+var (
+	// KindClusterPhasePending is the initial phase used before a KindCluster has been reconciled
+	KindClusterPhasePending KindClusterPhase = ""
 	// KindClusterPhaseCreating is the phase used during cluster creation
-	KindClusterPhaseCreating = "Creating"
+	KindClusterPhaseCreating KindClusterPhase = "Creating"
 	// KindClusterPhaseReady is the phase used when the cluster is created and ready
-	KindClusterPhaseReady = "Ready"
+	KindClusterPhaseReady KindClusterPhase = "Ready"
 	// KindClusterPhaseDeleting is the phase used when deleting an existing cluster
-	KindClusterPhaseDeleting = "Deleting"
+	KindClusterPhaseDeleting KindClusterPhase = "Deleting"
 )
 
 // FailureReason contains machine-readable details of what error occurred
 type FailureReason string
 
-const (
+var (
 	// FailureReasonCreateFailed indicates there was an error during cluster creation
-	FailureReasonCreateFailed = "CreateFailed"
+	FailureReasonCreateFailed FailureReason = "CreateFailed"
 	// FailureReasonKubeConfig indicates there was an error retrieving the KubeConfig for the cluster
-	FailureReasonKubeConfig = "KubeConfigNotFound"
+	FailureReasonKubeConfig FailureReason = "KubeConfigNotFound"
 	// FailureReasonEndpoint indicates there was an error retrieving and parsing the control plane endpoint details
-	FailureReasonEndpoint = "ControlPlaneEndpointInvalid"
+	FailureReasonEndpoint FailureReason = "ControlPlaneEndpointInvalid"
 	// FailureReasonClusterNotFound indicates there was an error trying to find the cluster in Kind
-	FailureReasonClusterNotFound = "ClusterNotFound"
+	FailureReasonClusterNotFound FailureReason = "ClusterNotFound"
 	// FailureReasonDeleteFailed indicates there was an error while deleting a cluster
-	FailureReasonDeleteFailed = "DeleteFailed"
+	FailureReasonDeleteFailed FailureReason = "DeleteFailed"
 )
 
 // KindClusterSpec defines the desired state of KindCluster
@@ -93,17 +95,21 @@ type KindClusterStatus struct {
 	Ready bool `json:"ready"`
 
 	// Phase contains details on the current phase of the cluster (e.g. creating, ready, deleting)
-	Phase KindClusterPhase `json:"phase"`
+	// +optional
+	Phase *KindClusterPhase `json:"phase"`
 
 	// KubeConfig contains the KubeConfig to use to communicate with the cluster
+	// +optional
 	KubeConfig *string `json:"kubeConfig,omitempty"`
 
 	// FailureReason indicates there is a fatal problem reconciling the infrastructure
 	// suitable for programmatic interpretation
-	FailureReason FailureReason `json:"failureReason"`
+	// +optional
+	FailureReason *FailureReason `json:"failureReason"`
 
 	// FailureMessage indicates there is a fatal problem reconciling the infrastructure
 	// descriptive interpretation
+	// +optional
 	FailureMessage *string `json:"failureMessage"`
 }
 
