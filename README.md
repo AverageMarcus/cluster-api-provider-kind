@@ -33,16 +33,16 @@ Declarative management of [Kind] clusters using Kubernetes resources, leveraging
     clusterctl init
     ```
 
-4. Install the cluster-api-provider-kind CRDs
+4. Install cluster-api-provider-kind into the management cluster
 
     ```sh
-    make install
+    make install deploy
     ```
 
-5. Run the provider
+5. Run the Kind API server on the host machine
 
     ```sh
-    make run
+    make run-server
     ```
 
 ## Limitations
@@ -50,7 +50,7 @@ Declarative management of [Kind] clusters using Kubernetes resources, leveraging
 There are a few limitations that you need to be aware of:
 
 * Kind doesn't provide any way of modifying the config of a running cluster so updates to a `KindCluster` have no effect on the underlying cluster.
-* Kind requires the Docker binary to function. Kind itself uses CRI / Containerd rather than Docker so the provider currently needs to run outside of the management cluster.
+* Kind requires the Docker binary to function. Kind itself uses CRI / Containerd rather than Docker so the provider requires a REST API server running on the host to interact with Kind.
 
 ---
 

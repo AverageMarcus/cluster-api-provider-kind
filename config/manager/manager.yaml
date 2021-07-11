@@ -52,5 +52,10 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
+        env:
+        - name: KIND_SERVER_PORT
+          value: "3000"
+        - name: KIND_SERVER_ENDPOINT
+          value: "127.0.0.1"
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
