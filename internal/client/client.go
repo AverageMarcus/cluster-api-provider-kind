@@ -12,10 +12,7 @@ import (
 	"github.com/AverageMarcus/cluster-api-provider-kind/api/v1alpha4"
 )
 
-var (
-	apiEndpoint = fmt.Sprintf("http://%s:%s", os.Getenv("KIND_SERVER_ENDPOINT"), os.Getenv("KIND_SERVER_PORT"))
-	client      = http.Client{Timeout: 300 * time.Second}
-)
+var client = http.Client{Timeout: 300 * time.Second}
 
 // CreateCluster creates a new cluster in Kind
 func CreateCluster(kindCluster *v1alpha4.KindCluster) error {
@@ -24,7 +21,7 @@ func CreateCluster(kindCluster *v1alpha4.KindCluster) error {
 		return err
 	}
 
-	resp, err := client.Post(apiEndpoint, "application/json", bytes.NewReader(payload))
+	resp, err := client.Post(getAPIEndpoint(), "application/json", bytes.NewReader(payload))
 	if err != nil {
 		return err
 	}
@@ -38,7 +35,7 @@ func CreateCluster(kindCluster *v1alpha4.KindCluster) error {
 
 // IsReady checks if the cluster is ready in Kind
 func IsReady(clusterName string) (bool, error) {
-	resp, err := client.Get(fmt.Sprintf("%s/%s", apiEndpoint, clusterName))
+	resp, err := client.Get(fmt.Sprintf("%s/%s", getAPIEndpoint(), clusterName))
 	if err != nil {
 		return false, err
 	}
@@ -62,7 +59,7 @@ func IsReady(clusterName string) (bool, error) {
 
 // GetKubeConfig returns the KubeConfig for the cluster in Kind matching the given name
 func GetKubeConfig(clusterName string) (string, error) {
-	resp, err := client.Get(fmt.Sprintf("%s/%s/kubeconfig", apiEndpoint, clusterName))
+	resp, err := client.Get(fmt.Sprintf("%s/%s/kubeconfig", getAPIEndpoint(), clusterName))
 	if err != nil {
 		return "", err
 	}
@@ -86,7 +83,7 @@ func GetKubeConfig(clusterName string) (string, error) {
 
 // DeleteCluster removes the cluster from Kind
 func DeleteCluster(clusterName string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s", apiEndpoint, clusterName), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/%s", getAPIEndpoint(), clusterName), nil)
 	if err != nil {
 		return err
 	}
@@ -101,4 +98,8 @@ func DeleteCluster(clusterName string) error {
 	}
 
 	return nil
+}
+
+func getAPIEndpoint() string {
+	return fmt.Sprintf("http://%s:%s", os.Getenv("KIND_SERVER_ENDPOINT"), os.Getenv("KIND_SERVER_PORT"))
 }
