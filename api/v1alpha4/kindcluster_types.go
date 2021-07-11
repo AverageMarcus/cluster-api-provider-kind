@@ -31,6 +31,16 @@ const (
 	KindClusterPhaseDeleting = "Deleting"
 )
 
+type FailureReason string
+
+const (
+	FailureReasonCreateFailed    = "CreateFailed"
+	FailureReasonKubeConfig      = "KubeConfigNotFound"
+	FailureReasonEndpoint        = "ControlPlaneEndpointInvalid"
+	FailureReasonClusterNotFound = "ClusterNotFound"
+	FailureReasonDeleteFailed    = "DeleteFailed"
+)
+
 // KindClusterSpec defines the desired state of KindCluster
 type KindClusterSpec struct {
 	// Image is the node image used for the cluster nodes
@@ -77,6 +87,14 @@ type KindClusterStatus struct {
 
 	// KubeConfig contains the KubeConfig to use to communicate with the cluster
 	KubeConfig *string `json:"kubeConfig,omitempty"`
+
+	// FailureReason indicates there is a fatal problem reconciling the infrastructure
+	// suitable for programmatic interpretation
+	FailureReason FailureReason `json:"failureReason"`
+
+	// FailureMessage indicates there is a fatal problem reconciling the infrastructure
+	// descriptive interpretation
+	FailureMessage *string `json:"failureMessage"`
 }
 
 //+kubebuilder:object:root=true

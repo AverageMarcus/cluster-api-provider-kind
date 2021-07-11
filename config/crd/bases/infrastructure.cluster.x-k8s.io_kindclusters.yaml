@@ -81,6 +81,14 @@ spec:
           status:
             description: KindClusterStatus defines the observed state of KindCluster
             properties:
+              failureMessage:
+                description: FailureMessage indicates there is a fatal problem reconciling
+                  the infrastructure descriptive interpretation
+                type: string
+              failureReason:
+                description: FailureReason indicates there is a fatal problem reconciling
+                  the infrastructure suitable for programmatic interpretation
+                type: string
               kubeConfig:
                 description: KubeConfig contains the KubeConfig to use to communicate
                   with the cluster
@@ -94,6 +102,8 @@ spec:
                 description: Ready indicates if the cluster is ready to use or not
                 type: boolean
             required:
+            - failureMessage
+            - failureReason
             - phase
             - ready
             type: object

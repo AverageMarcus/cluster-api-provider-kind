@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
@@ -30,10 +31,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/AverageMarcus/cluster-api-provider-kind/api/v1alpha4"
 	infrastructurev1alpha4 "github.com/AverageMarcus/cluster-api-provider-kind/api/v1alpha4"
 	"github.com/AverageMarcus/cluster-api-provider-kind/pkg/kind"
 	"github.com/AverageMarcus/cluster-api-provider-kind/pkg/kubeconfig"
-	"github.com/pkg/errors"
+	"github.com/AverageMarcus/cluster-api-provider-kind/pkg/utils"
 )
 
 // KindClusterReconciler reconciles a KindCluster object
@@ -94,6 +96,7 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	k := kind.New(log)
 
+	// Ensure we always patch the resource with the latest changes when exiting function
 	defer func() {
 		helper.Patch(
 			context.TODO(),
@@ -119,6 +122,8 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 			if err := k.DeleteCluster(kindCluster.NamespacedName()); err != nil {
 				log.Error(err, "failed to delete cluster")
+				kindCluster.Status.FailureReason = v1alpha4.FailureReasonDeleteFailed
+				kindCluster.Status.FailureMessage = utils.StringPtr(err.Error())
 				return ctrl.Result{}, err
 			}
 
@@ -145,6 +150,8 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		if err := k.CreateCluster(kindCluster); err != nil {
 			log.Error(err, "failed to create cluster in kind")
+			kindCluster.Status.FailureReason = v1alpha4.FailureReasonCreateFailed
+			kindCluster.Status.FailureMessage = utils.StringPtr(err.Error())
 			return ctrl.Result{}, err
 		}
 
@@ -160,6 +167,8 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	isReady, err := k.IsReady(kindCluster.NamespacedName())
 	if err != nil {
 		log.Error(err, "failed to check status of cluster")
+		kindCluster.Status.FailureReason = v1alpha4.FailureReasonClusterNotFound
+		kindCluster.Status.FailureMessage = utils.StringPtr(err.Error())
 		return ctrl.Result{}, err
 	}
 	kindCluster.Status.Ready = isReady
@@ -173,6 +182,8 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	kc, err := k.GetKubeConfig(kindCluster.NamespacedName())
 	if err != nil {
 		log.Error(err, "failed to check status of cluster")
+		kindCluster.Status.FailureReason = v1alpha4.FailureReasonKubeConfig
+		kindCluster.Status.FailureMessage = utils.StringPtr(err.Error())
 		return ctrl.Result{}, err
 	}
 	kindCluster.Status.KubeConfig = &kc
@@ -181,6 +192,9 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	endpoint, err := kubeconfig.ExtractEndpoint(kc, kindCluster.NamespacedName())
 	if err != nil {
 		log.Error(err, "failed to get control plane endpoint")
+		kindCluster.Status.FailureReason = v1alpha4.FailureReasonEndpoint
+		kindCluster.Status.FailureMessage = utils.StringPtr(err.Error())
+		return ctrl.Result{}, err
 	}
 	kindCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
 		Host: endpoint.Host,
