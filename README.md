@@ -1,3 +1,5 @@
+<img src="logo.png" height="200px" alt="capk">
+
 # cluster-api-provider-kind (capk)
 
 Declarative management of [Kind] clusters using Kubernetes resources, leveraging [cluster-api].
