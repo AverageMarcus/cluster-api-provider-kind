@@ -32,6 +32,7 @@ import (
 
 	infrastructurev1alpha4 "github.com/AverageMarcus/cluster-api-provider-kind/api/v1alpha4"
 	"github.com/AverageMarcus/cluster-api-provider-kind/pkg/kind"
+	"github.com/AverageMarcus/cluster-api-provider-kind/pkg/kubeconfig"
 	"github.com/pkg/errors"
 )
 
@@ -116,7 +117,7 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				return ctrl.Result{}, err
 			}
 
-			if err := k.DeleteCluster(kindCluster.Name); err != nil {
+			if err := k.DeleteCluster(kindCluster.NamespacedName()); err != nil {
 				log.Error(err, "failed to delete cluster")
 				return ctrl.Result{}, err
 			}
@@ -155,7 +156,8 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
-	isReady, err := k.IsReady(kindCluster.Name)
+	// Ensure ready status is up-to-date
+	isReady, err := k.IsReady(kindCluster.NamespacedName())
 	if err != nil {
 		log.Error(err, "failed to check status of cluster")
 		return ctrl.Result{}, err
@@ -166,17 +168,25 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	} else {
 		kindCluster.Status.Phase = infrastructurev1alpha4.KindClusterPhaseCreating
 	}
-	if err := helper.Patch(ctx, kindCluster); err != nil {
-		log.Error(err, "failed to update KindCluster status")
-		return ctrl.Result{}, err
-	}
 
-	kubeConfig, err := k.GetKubeConfig(kindCluster.Name)
+	// Ensure kubeconfig is up-to-date
+	kc, err := k.GetKubeConfig(kindCluster.NamespacedName())
 	if err != nil {
 		log.Error(err, "failed to check status of cluster")
 		return ctrl.Result{}, err
 	}
-	kindCluster.Status.KubeConfig = &kubeConfig
+	kindCluster.Status.KubeConfig = &kc
+
+	// Populate the server endpoint details
+	endpoint, err := kubeconfig.ExtractEndpoint(kc, kindCluster.NamespacedName())
+	if err != nil {
+		log.Error(err, "failed to get control plane endpoint")
+	}
+	kindCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+		Host: endpoint.Host,
+		Port: endpoint.Port,
+	}
+
 	if err := helper.Patch(ctx, kindCluster); err != nil {
 		log.Error(err, "failed to update KindCluster status")
 		return ctrl.Result{}, err

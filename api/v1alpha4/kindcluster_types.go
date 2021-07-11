@@ -17,7 +17,10 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 type KindClusterPhase string
@@ -57,6 +60,10 @@ type KindClusterSpec struct {
 	// See https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
 	// for the available values.
 	RuntimeConfig map[string]string `json:"runtimeConfig,omitempty"`
+
+	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// +optional
+	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 }
 
 // KindClusterStatus defines the observed state of KindCluster
@@ -82,6 +89,11 @@ type KindCluster struct {
 
 	Spec   KindClusterSpec   `json:"spec,omitempty"`
 	Status KindClusterStatus `json:"status,omitempty"`
+}
+
+// NamespacesName returns the KindCluster name prefixed with the namespace
+func (kc *KindCluster) NamespacedName() string {
+	return fmt.Sprintf("%s-%s", kc.Namespace, kc.Namespace)
 }
 
 //+kubebuilder:object:root=true

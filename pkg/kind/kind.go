@@ -29,7 +29,7 @@ func New(log logr.Logger) *Kind {
 // CreateCluster creates a new cluster in Kind
 func (k *Kind) CreateCluster(kindCluster *kindcluster.KindCluster) error {
 	return k.provider.Create(
-		kindCluster.Name,
+		kindCluster.NamespacedName(),
 		cluster.CreateWithV1Alpha4Config(kindClusterToKindConfig(kindCluster)),
 		cluster.CreateWithWaitForReady(createWaitTime),
 		cluster.CreateWithKubeconfigPath(path.Join(os.TempDir(), "kubeconfig")),
