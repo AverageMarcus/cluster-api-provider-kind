@@ -13,4 +13,8 @@ resources:
   kind: KindCluster
   path: github.com/AverageMarcus/cluster-api-provider-kind/api/v1alpha4
   version: v1alpha4
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 version: "3"

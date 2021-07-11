@@ -57,18 +57,18 @@ var (
 type KindClusterSpec struct {
 	// Image is the node image used for the cluster nodes
 	//
-	// +kubebuilder:validation:Defaul=kindest/node
+	// +kubebuilder:default=kindest/node
 	Image string `json:"image,omitempty"`
 
 	// Version is the Kubernetes version to use (e.g. v1.21.2)
 	//
-	// +kubebuilder:validation:Default=v1.21.2
+	// +kubebuilder:default=v1.21.2
 	// +kubebuilder:validation:Pattern=^v\d\.\d+\.\d+$
 	Version string `json:"version,omitempty"`
 
 	// Replicas controls the number of control plane nodes to create
 	//
-	// +kubebuilder:validation:Default=1
+	// +kubebuilder:default=1
 	Replicas int32 `json:"replicas,omitempty"`
 
 	// FeatureGates enables or disabled Kubernetes feature gates

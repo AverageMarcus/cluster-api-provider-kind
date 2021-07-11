@@ -59,9 +59,11 @@ spec:
                   for the available features."
                 type: object
               image:
+                default: kindest/node
                 description: Image is the node image used for the cluster nodes
                 type: string
               replicas:
+                default: 1
                 description: Replicas controls the number of control plane nodes to
                   create
                 format: int32
@@ -74,6 +76,7 @@ spec:
                   for the available values."
                 type: object
               version:
+                default: v1.21.2
                 description: Version is the Kubernetes version to use (e.g. v1.21.2)
                 pattern: ^v\d\.\d+\.\d+$
                 type: string
