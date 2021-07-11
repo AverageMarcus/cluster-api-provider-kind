@@ -127,7 +127,7 @@ type KindCluster struct {
 
 // NamespacedName returns the KindCluster name prefixed with the namespace
 func (kc *KindCluster) NamespacedName() string {
-	return fmt.Sprintf("%s-%s", kc.Namespace, kc.Namespace)
+	return fmt.Sprintf("%s-%s", kc.Namespace, kc.Name)
 }
 
 //+kubebuilder:object:root=true
