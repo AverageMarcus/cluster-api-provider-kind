@@ -23,22 +23,32 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
+// KindClusterPhase indicates the current phase of a clusters life
 type KindClusterPhase string
 
 const (
+	// KindClusterPhaseCreating is the phase used during cluster creation
 	KindClusterPhaseCreating = "Creating"
-	KindClusterPhaseReady    = "Ready"
+	// KindClusterPhaseReady is the phase used when the cluster is created and ready
+	KindClusterPhaseReady = "Ready"
+	// KindClusterPhaseDeleting is the phase used when deleting an existing cluster
 	KindClusterPhaseDeleting = "Deleting"
 )
 
+// FailureReason contains machine-readable details of what error occurred
 type FailureReason string
 
 const (
-	FailureReasonCreateFailed    = "CreateFailed"
-	FailureReasonKubeConfig      = "KubeConfigNotFound"
-	FailureReasonEndpoint        = "ControlPlaneEndpointInvalid"
+	// FailureReasonCreateFailed indicates there was an error during cluster creation
+	FailureReasonCreateFailed = "CreateFailed"
+	// FailureReasonKubeConfig indicates there was an error retrieving the KubeConfig for the cluster
+	FailureReasonKubeConfig = "KubeConfigNotFound"
+	// FailureReasonEndpoint indicates there was an error retrieving and parsing the control plane endpoint details
+	FailureReasonEndpoint = "ControlPlaneEndpointInvalid"
+	// FailureReasonClusterNotFound indicates there was an error trying to find the cluster in Kind
 	FailureReasonClusterNotFound = "ClusterNotFound"
-	FailureReasonDeleteFailed    = "DeleteFailed"
+	// FailureReasonDeleteFailed indicates there was an error while deleting a cluster
+	FailureReasonDeleteFailed = "DeleteFailed"
 )
 
 // KindClusterSpec defines the desired state of KindCluster
@@ -109,7 +119,7 @@ type KindCluster struct {
 	Status KindClusterStatus `json:"status,omitempty"`
 }
 
-// NamespacesName returns the KindCluster name prefixed with the namespace
+// NamespacedName returns the KindCluster name prefixed with the namespace
 func (kc *KindCluster) NamespacedName() string {
 	return fmt.Sprintf("%s-%s", kc.Namespace, kc.Namespace)
 }

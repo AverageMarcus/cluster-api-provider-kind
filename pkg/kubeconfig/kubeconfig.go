@@ -21,11 +21,14 @@ type clusterDetails struct {
 	Server string `json:"server"`
 }
 
+// ClusterEndpoint contains the control plane endpoint parts
 type ClusterEndpoint struct {
 	Host string `json:"host"`
 	Port int32  `json:"port"`
 }
 
+// ExtractEndpoint parses the provided kubeconfig and attempts to pull out the
+// cluster endpoint details matching the given cluster name
 func ExtractEndpoint(kubeconfig string, clusterName string) (*ClusterEndpoint, error) {
 	var config kubeConfig
 	err := yaml.Unmarshal([]byte(kubeconfig), &config)

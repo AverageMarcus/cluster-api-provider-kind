@@ -65,10 +65,10 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		if client.IgnoreNotFound(err) != nil {
 			log.Error(err, "unable to fetch KindCluster")
 			return ctrl.Result{}, err
-		} else {
-			// Cluster no longer exists so lets stop now
-			return ctrl.Result{}, nil
 		}
+
+		// Cluster no longer exists so lets stop now
+		return ctrl.Result{}, nil
 	}
 
 	// Fetch the owner Cluster

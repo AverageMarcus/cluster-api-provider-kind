@@ -7,51 +7,52 @@ import (
 	"sigs.k8s.io/kind/pkg/log"
 )
 
-type Logger struct {
+// kindLogger implements the Logger interface
+type kindLogger struct {
 	Log logr.Logger
 }
 
 // Warn meets the Logger interface
-func (l Logger) Warn(message string) {
+func (l kindLogger) Warn(message string) {
 	l.Log.Info(message)
 }
 
 // Warnf meets the Logger interface
-func (l Logger) Warnf(format string, args ...interface{}) {
+func (l kindLogger) Warnf(format string, args ...interface{}) {
 	l.Log.Info(fmt.Sprintf(format, args...))
 }
 
 // Error meets the Logger interface
-func (l Logger) Error(message string) {
+func (l kindLogger) Error(message string) {
 	l.Log.Info(message)
 }
 
 // Errorf meets the Logger interface
-func (l Logger) Errorf(format string, args ...interface{}) {
+func (l kindLogger) Errorf(format string, args ...interface{}) {
 	l.Log.Info(fmt.Sprintf(format, args...))
 }
 
 // V meets the Logger interface
-func (l Logger) V(level log.Level) log.InfoLogger {
-	return InfoLogger{l.Log}
+func (l kindLogger) V(level log.Level) log.InfoLogger {
+	return kindInfoLogger{l.Log}
 }
 
-// InfoLogger implements the InfoLogger interface and never logs anything
-type InfoLogger struct {
+// kindInfoLogger implements the InfoLogger interface
+type kindInfoLogger struct {
 	Log logr.Logger
 }
 
 // Enabled meets the InfoLogger interface but always returns false
-func (l InfoLogger) Enabled() bool {
+func (l kindInfoLogger) Enabled() bool {
 	return false
 }
 
 // Info meets the InfoLogger interface
-func (l InfoLogger) Info(message string) {
+func (l kindInfoLogger) Info(message string) {
 	l.Log.Info(message)
 }
 
 // Infof meets the InfoLogger interface
-func (l InfoLogger) Infof(format string, args ...interface{}) {
+func (l kindInfoLogger) Infof(format string, args ...interface{}) {
 	l.Log.Info(fmt.Sprintf(format, args...))
 }

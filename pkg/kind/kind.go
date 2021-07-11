@@ -22,7 +22,7 @@ type Kind struct {
 // New create a new instance of Kind
 func New(log logr.Logger) *Kind {
 	return &Kind{
-		provider: cluster.NewProvider(cluster.ProviderWithLogger(Logger{log})),
+		provider: cluster.NewProvider(cluster.ProviderWithLogger(kindLogger{log})),
 	}
 }
 
