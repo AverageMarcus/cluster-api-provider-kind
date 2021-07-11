@@ -37,7 +37,7 @@ func ExtractEndpoint(kubeconfig string, clusterName string) (*ClusterEndpoint, e
 	}
 
 	for _, cluster := range config.Clusters {
-		if cluster.Name == clusterName {
+		if cluster.Name == fmt.Sprintf("kind-%s", clusterName) {
 			serverEndpoint := cluster.Cluster.Server
 			serverEndpoint = strings.TrimPrefix(serverEndpoint, "https://")
 			serverEndpoint = strings.TrimPrefix(serverEndpoint, "http://")
