@@ -45,6 +45,30 @@ Declarative management of [Kind] clusters using Kubernetes resources, leveraging
     make run-server
     ```
 
+6. Apply cluster manifest
+
+    ```sh
+    echo 'apiVersion: cluster.x-k8s.io/v1alpha4
+    kind: Cluster
+    metadata:
+      name: workload-cluster
+    spec:
+      clusterNetwork:
+        pods:
+          cidrBlocks: ["192.168.0.0/16"]
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+        kind: KindCluster
+        name: workload-cluster
+    ---
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    kind: KindCluster
+    metadata:
+      name: workload-cluster
+    spec:
+      replicas: 1' | k apply -f -
+    ```
+
 ## Limitations
 
 There are a few limitations that you need to be aware of:
